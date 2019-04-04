@@ -1,0 +1,10 @@
+"STARTUP.obj",
+"main.obj",
+"lcd_driver.obj",
+"gui.obj",
+"rsd.obj",
+"nrf24l01.obj",
+"temp.obj",
+"lcdDisplay.obj",
+"beep.obj" 
+TO "pro" 

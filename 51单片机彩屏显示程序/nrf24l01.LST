@@ -1,0 +1,225 @@
+C51 COMPILER V9.01   NRF24L01                                                              07/12/2018 15:31:13 PAGE 1   
+
+
+C51 COMPILER V9.01, COMPILATION OF MODULE NRF24L01
+OBJECT MODULE PLACED IN nrf24l01.OBJ
+COMPILER INVOKED BY: D:\C51\BIN\C51.EXE nrf24l01.c COMPACT BROWSE DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          #include "nrf24l01.h" 
+   2          
+   3          //uchar sta;    // 状态变量
+   4          uchar code TX_Addr[]={0x34,0x43,0x10,0x10,0x01};
+   5          //uchar TX_Addr[]="Rec01";
+   6          uchar code TX_Buffer[]={0xfe,0xfd,0xfb,0xf7,0xef,0xdf,0xbf,0x00};
+   7          uchar RX_Buffer[RX_DATA_WITDH];
+   8          
+   9          
+  10          void _delay_us(uint x)
+  11          {
+  12   1          uint i,j;
+  13   1          for (j=0;j<x;j++)
+  14   1              for (i=0;i<12;i++);
+  15   1      }
+  16          void _delay_ms(uint x)
+  17          {
+  18   1          uint i,j;
+  19   1          for (j=0;j<x;j++)
+  20   1              for (i=0;i<120;i++);
+  21   1      }
+  22          /*nRF24L01初始化*/
+  23          void nRF24L01_Init(void)
+  24          {
+  25   1          CE=0;//待机模式Ⅰ
+  26   1          CSN=1;
+  27   1          SCK=0;
+  28   1          IRQ=1;
+  29   1      }
+  30          /*SPI时序函数*/
+  31          uchar SPI_RW(uchar byte)
+  32          {
+  33   1          uchar i;
+  34   1          for(i=0;i<8;i++)//一字节8位循环8次写入
+  35   1          {
+  36   2              if(byte&0x80)//如果数据最高位是1
+  37   2                  MOSI=1;//向NRF24L01写1
+  38   2              else //否则写0
+  39   2                  MOSI=0;
+  40   2              byte<<=1;//低一位移到最高位
+  41   2              SCK=1;//SCK拉高，写入一位数据，同时读取一位数据
+  42   2              if(MISO)
+  43   2                  byte|=0x01;
+  44   2              SCK=0;//SCK拉低
+  45   2          }
+  46   1          return byte;//返回读取一字节 
+  47   1      }
+  48          /*SPI写寄存器一字节函数*/
+  49          /*reg:寄存器地址*/
+  50          /*value:一字节（值）*/
+  51          uchar SPI_W_Reg(uchar reg,uchar value)
+  52          {
+  53   1          uchar status;//返回状态
+  54   1          CSN=0;//SPI片选
+  55   1          status=SPI_RW(reg);//写入寄存器地址，同时读取状态
+C51 COMPILER V9.01   NRF24L01                                                              07/12/2018 15:31:13 PAGE 2   
+
+  56   1          SPI_RW(value);//写入一字节
+  57   1          CSN=1;//
+  58   1          return status;//返回状态
+  59   1      }
+  60          /*SPI读一字节*/
+  61          uchar SPI_R_byte(uchar reg)
+  62          {
+  63   1          uchar reg_value;
+  64   1          CSN=0;//SPI片选
+  65   1          SPI_RW(reg);//写入地址
+  66   1          reg_value=SPI_RW(0);//读取寄存器的值
+  67   1          CSN=1;
+  68   1          return reg_value;//返回读取的值
+  69   1      }
+  70          /*SPI读取RXFIFO寄存器数据*/
+  71          /*reg:寄存器地址*/
+  72          /*Dat_Buffer:用来存读取的数据*/
+  73          /*DLen:数据长度*/
+  74          uchar SPI_R_DBuffer(uchar reg,uchar *Dat_Buffer,uchar Dlen)
+  75          {
+  76   1          uchar status,i;
+  77   1          CSN=0;//SPI片选
+  78   1          status=SPI_RW(reg);//写入寄存器地址，同时状态
+  79   1          for(i=0;i<Dlen;i++)
+  80   1          {
+  81   2              Dat_Buffer[i]=SPI_RW(0);//存储数据
+  82   2          }
+  83   1          CSN=1;
+  84   1          return status;
+  85   1      }
+  86          /*SPI向TXFIFO寄存器写入数据*/
+  87          /*reg:写入寄存器地址*/
+  88          /*TX_Dat_Buffer:存放需要发送的数据*/
+  89          /*Dlen:数据长度*/  
+  90          uchar SPI_W_DBuffer(uchar reg,uchar *TX_Dat_Buffer,uchar Dlen)
+  91          {
+  92   1          uchar status,i;
+  93   1          CSN=0;//SPI片选，启动时序
+  94   1          status=SPI_RW(reg);
+  95   1          for(i=0;i<Dlen;i++)
+  96   1          {
+  97   2              SPI_RW(TX_Dat_Buffer[i]);//发送数据
+  98   2          }
+  99   1          CSN=1;
+ 100   1          return status;  
+ 101   1      }
+ 102          /*设置发送模式*/
+ 103          void nRF24L01_Set_TX_Mode(uchar *TX_Data)
+ 104          {
+ 105   1          CE=0;//待机（写寄存器之前一定要进入待机模式或掉电模式）
+ 106   1          SPI_W_DBuffer(W_REGISTER+TX_ADDR,TX_Addr,TX_ADDR_WITDH);/*写寄存器指令+接收节点地址+地址宽度*/
+ 107   1          SPI_W_DBuffer(W_REGISTER+RX_ADDR_P0,TX_Addr,TX_ADDR_WITDH);/*为了接收设备应答信号，接收通道0地址与发送
+             -地址相同*/
+ 108   1          SPI_W_DBuffer(W_TX_PLOAD,TX_Data,TX_DATA_WITDH);/*写有效数据地址+有效数据+有效数据宽度*/
+ 109   1          SPI_W_Reg(W_REGISTER+EN_AA,0x01);/*接收通道0自动应答*/
+ 110   1          SPI_W_Reg(W_REGISTER+EN_RX_ADDR,0x01);/*使能接收通道0*/
+ 111   1          SPI_W_Reg(W_REGISTER+SETUP_RETR,0x0a);/*自动重发延时250US+86US，重发10次*/
+ 112   1          SPI_W_Reg(W_REGISTER+RF_CH,0);/*(2400)MHZ射频通道*/
+ 113   1          SPI_W_Reg(W_REGISTER+RF_SETUP,0x07);/*1Mbps速率,发射功率:0DBM,低噪声放大器增益*/
+ 114   1          SPI_W_Reg(W_REGISTER+CONFIG,0x0e);/*发送模式,上电,16位CRC校验,CRC使能*/
+ 115   1          CE=1;//启动发射
+ 116   1          _delay_ms(5);/*CE高电平持续时间最少10US以上*/
+C51 COMPILER V9.01   NRF24L01                                                              07/12/2018 15:31:13 PAGE 3   
+
+ 117   1      }
+ 118           
+ 119          uchar Check_Rec(void)
+ 120          {
+ 121   1          uchar status;
+ 122   1          sta=SPI_R_byte(R_REGISTER+STATUS);
+ 123   1          if(RX_DR)
+ 124   1          {
+ 125   2              CE=0;
+ 126   2              SPI_R_DBuffer(R_RX_PLOAD,RX_Buffer,RX_DATA_WITDH);
+ 127   2              status=1;
+ 128   2          }
+ 129   1          SPI_W_Reg(W_REGISTER+STATUS,0xff);
+ 130   1          return status;  
+ 131   1      }
+ 132          /*检测应答信号*/
+ 133          uchar Check_Ack(void)
+ 134          {
+ 135   1          sta=SPI_R_byte(R_REGISTER+STATUS);/*读取寄存状态*/
+ 136   1          if(TX_DS||MAX_RT)/*如果TX_DS或MAX_RT为1,则清除中断和清除TX_FIFO寄存器的值*/
+ 137   1          {
+ 138   2              SPI_W_Reg(W_REGISTER+STATUS,0xff);
+ 139   2              CSN=0;
+ 140   2              SPI_RW(FLUSH_TX);/*如果没有这一句只能发一次数据，大家要注意*/
+ 141   2              CSN=1;
+ 142   2              return 0;
+ 143   2          }
+ 144   1          else
+ 145   1              return 1;
+ 146   1      }
+ 147          void nRF24L01_Set_RX_Mode()
+ 148          {
+ 149   1          
+ 150   1              CE=0;
+ 151   1          SPI_W_DBuffer(W_REGISTER+TX_ADDR,TX_Addr,TX_ADDR_WITDH);
+ 152   1          SPI_W_DBuffer(W_REGISTER+RX_ADDR_P0,TX_Addr,TX_ADDR_WITDH);
+ 153   1          SPI_W_Reg(W_REGISTER+EN_AA,0x01);//auot ack
+ 154   1          SPI_W_Reg(W_REGISTER+EN_RX_ADDR,0x01);
+ 155   1          SPI_W_Reg(W_REGISTER+SETUP_RETR,0x0a);
+ 156   1          SPI_W_Reg(W_REGISTER+RX_PW_P0,RX_DATA_WITDH);
+ 157   1          SPI_W_Reg(W_REGISTER+RF_CH,0);
+ 158   1          SPI_W_Reg(W_REGISTER+RF_SETUP,0x07);//0db,lna
+ 159   1          SPI_W_Reg(W_REGISTER+CONFIG,0x0f);
+ 160   1           
+ 161   1          
+ 162   1              CE=1;
+ 163   1          _delay_ms(5);/*CE高电平持续时间最少10US以上*/
+ 164   1      }
+ 165           
+ 166          unsigned char nRF24L01_RX_Data()
+ 167          {
+ 168   1      //  unsigned char i,status;
+ 169   1          sta=SPI_R_byte(R_REGISTER+STATUS);
+ 170   1          if(RX_DR)
+ 171   1          {
+ 172   2              
+ 173   2                      CE =0;
+ 174   2              SPI_R_DBuffer(R_RX_PLOAD,RX_Buffer,RX_DATA_WITDH);
+ 175   2              SPI_W_Reg(W_REGISTER+STATUS,0xff);
+ 176   2             
+ 177   2                      CSN =0;
+ 178   2              SPI_RW(FLUSH_RX);
+C51 COMPILER V9.01   NRF24L01                                                              07/12/2018 15:31:13 PAGE 4   
+
+ 179   2              CSN =1;
+ 180   2              return 1;
+ 181   2          }
+ 182   1          else
+ 183   1              return 0;
+ 184   1           
+ 185   1      }
+ 186          /* 检查接收数据*/ 
+ 187          unsigned char CheckNrf2401()
+ 188          {
+ 189   1              if(nRF24L01_RX_Data())
+ 190   1              {
+ 191   2                      return 1;
+ 192   2              }
+ 193   1              else return 0;
+ 194   1      }
+ 195          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    549    ----
+   CONSTANT SIZE    =     13    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =      8      14
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

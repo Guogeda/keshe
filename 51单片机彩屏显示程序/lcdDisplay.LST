@@ -1,0 +1,130 @@
+C51 COMPILER V9.01   LCDDISPLAY                                                            07/12/2018 15:31:14 PAGE 1   
+
+
+C51 COMPILER V9.01, COMPILATION OF MODULE LCDDISPLAY
+OBJECT MODULE PLACED IN lcdDisplay.OBJ
+COMPILER INVOKED BY: D:\C51\BIN\C51.EXE lcdDisplay.c COMPACT BROWSE DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          #include "lcdDisplay.h"
+   2          
+   3          /******
+   4          ×î³õ°æ±¾µÄ²ÊÆÁÏÔÊ¾º¯Êý
+   5          ÎÂ¶È£º+25.44
+   6          ÎÞÈË  0
+   7          sending.....
+   8          ÎÂ¶È£º25
+   9          Êª¶È£º84
+  10          ******/
+  11          void LcdDisplay(int temp)        //lcdÏÔÊ¾
+  12          {
+  13   1              uchar i,j=100;
+  14   1              unsigned char datas[]={0,0,0,0,0,0}; //¶¨ÒåÊý×é
+  15   1              unsigned char xdata codes[][10] = {"0","1","2","3","4","5","6","7","8","9"};
+  16   1              float tp; 
+  17   1              GUI_Write32CnChar(125, 20, "ÎÂ¶È", RED, WHITE);
+  18   1              GUI_WriteASCII(125, 80, ":", RED, WHITE);
+  19   1      
+  20   1               
+  21   1              if(temp< 0)                             //µ±ÎÂ¶ÈÖµÎª¸ºÊý
+  22   1              {
+  23   2                      
+  24   2                      GUI_WriteASCII(125, 90, "-", RED, WHITE);
+  25   2                      //ÒòÎª¶ÁÈ¡µÄÎÂ¶ÈÊÇÊµ¼ÊÎÂ¶ÈµÄ²¹Âë£¬ËùÒÔ¼õ1£¬ÔÙÈ¡·´Çó³öÔ­Âë
+  26   2                      temp=temp-1;
+  27   2                      temp=~temp;
+  28   2                      tp=temp;
+  29   2                      temp=tp*0.0625*100+0.5; 
+  30   2                      //ÁôÁ½¸öÐ¡Êýµã¾Í*100£¬+0.5ÊÇËÄÉáÎåÈë£¬ÒòÎªCÓïÑÔ¸¡µãÊý×ª»»ÎªÕûÐÍµÄÊ±ºò°ÑÐ¡Êýµã
+  31   2                      //ºóÃæµÄÊý×Ô¶¯È¥µô£¬²»¹ÜÊÇ·ñ´óÓÚ0.5£¬¶ø+0.5Ö®ºó´óÓÚ0.5µÄ¾ÍÊÇ½ø1ÁË£¬Ð¡ÓÚ0.5µÄ¾Í
+  32   2                      //ËãÓÉÏ0.5£¬»¹ÊÇÔÚÐ¡ÊýµãºóÃæ¡£
+  33   2       
+  34   2              }
+  35   1              else
+  36   1              {                       
+  37   2                      GUI_WriteASCII(125, 90, "+", RED, WHITE);
+  38   2                      tp=temp;//ÒòÎªÊý¾Ý´¦ÀíÓÐÐ¡ÊýµãËùÒÔ½«ÎÂ¶È¸³¸øÒ»¸ö¸¡µãÐÍ±äÁ¿
+  39   2                      //Èç¹ûÎÂ¶ÈÊÇÕýµÄÄÇÃ´£¬ÄÇÃ´ÕýÊýµÄÔ­Âë¾ÍÊÇ²¹ÂëËü±¾Éí
+  40   2                      temp=tp*0.0625*100+0.5; 
+  41   2                      //ÁôÁ½¸öÐ¡Êýµã¾Í*100£¬+0.5ÊÇËÄÉáÎåÈë£¬ÒòÎªCÓïÑÔ¸¡µãÊý×ª»»ÎªÕûÐÍµÄÊ±ºò°ÑÐ¡Êýµã
+  42   2                      //ºóÃæµÄÊý×Ô¶¯È¥µô£¬²»¹ÜÊÇ·ñ´óÓÚ0.5£¬¶ø+0.5Ö®ºó´óÓÚ0.5µÄ¾ÍÊÇ½ø1ÁË£¬Ð¡ÓÚ0.5µÄ¾Í
+  43   2                      //Ëã¼ÓÉÏ0.5£¬»¹ÊÇÔÚÐ¡ÊýµãºóÃæ¡£
+  44   2              }
+  45   1              datas[0] = temp / 10000;
+  46   1              datas[1] = temp % 10000 / 1000;
+  47   1              datas[2] = temp % 1000 / 100;
+  48   1              datas[3] = temp % 100 / 10;
+  49   1              datas[4] = temp % 10;
+  50   1              for (i=0;i<3;i++)
+  51   1              {
+  52   2                       GUI_WriteASCII(125, 105+i*15,&codes[datas[i]], RED, WHITE);
+  53   2                       GUI_WriteASCII(95, 95,"sending...", RED, WHITE);
+  54   2              }
+  55   1                       GUI_WriteASCII(125, 150,".", RED, WHITE);
+C51 COMPILER V9.01   LCDDISPLAY                                                            07/12/2018 15:31:14 PAGE 2   
+
+  56   1              for (i=3;i<5;i++)
+  57   1              {
+  58   2                      GUI_WriteASCII(125, 120+i*15,&codes[datas[i]], RED, WHITE);
+  59   2              }
+  60   1              datas[5] = check_rsd();
+  61   1              nRF24L01_Set_TX_Mode(&datas);//·¢ËÍÊý¾Ý  ³É
+  62   1              while(Check_Ack());//µÈ´ý·¢ËÍÍê³É
+  63   1      
+  64   1              GUI_WriteASCII(95, 95,"sendover", RED, WHITE);
+  65   1              SPI_W_Reg(W_REGISTER+STATUS,0xff);//ÇåÁã×´Ì¬¼Ä´æÆ÷£¿
+  66   1              if(check_rsd()==1)
+  67   1                      GUI_Write32CnChar(95, 20, "ÓÐÈË", RED, WHITE);
+  68   1              else
+  69   1                  GUI_Write32CnChar(95, 20, "ÎÞÈË", RED, WHITE);
+  70   1              nRF24L01_Init();
+  71   1              nRF24L01_Set_RX_Mode();
+  72   1        
+  73   1              Delay1ms(1000);
+  74   1              while(j--)
+  75   1              {
+  76   2              
+  77   2                      if (nRF24L01_RX_Data())
+  78   2                      {
+  79   3                              j=1000;
+  80   3                              for (i=0;i<2;i++)
+  81   3                              {
+  82   4                                      GUI_Write32CnChar(35, 20, "ÎÂ¶È",WHITE, RED);
+  83   4                                      GUI_WriteASCII(35, 95+i*15,&codes[RX_Buffer[i]], WHITE,RED);
+  84   4                              }
+  85   3                              for (i=2;i<4;i++)
+  86   3                              {
+  87   4                                      GUI_Write32CnChar(5, 20, "Êª¶È", WHITE,RED );
+  88   4                                      GUI_WriteASCII(5, 65+i*15,&codes[RX_Buffer[i]], WHITE,RED );
+  89   4                              }
+  90   3                              if(RX_Buffer[4]==1)
+  91   3                              {                                                                         
+  92   4                                      GUI_WriteASCII(70, 20,"warning",  WHITE,RED);
+  93   4                                      beep_alarm();
+  94   4                              }
+  95   3                              else
+  96   3                              {
+  97   4                                      GUI_WriteASCII(70, 20,"safeing", WHITE,RED);
+  98   4                                      beep_safe();
+  99   4                              }
+ 100   3                      }
+ 101   2                      Delay1ms(10);
+ 102   2                      break;  
+ 103   2              }
+ 104   1      }                                                       
+*** WARNING C316 IN LINE 104 OF lcdDisplay.c: unterminated conditionals
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1018    ----
+   CONSTANT SIZE    =    170    ----
+   XDATA SIZE       =   ----     100
+   PDATA SIZE       =   ----      14
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  1 WARNING(S),  0 ERROR(S)
